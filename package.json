@@ -1,0 +1,16 @@
+{
+  "name": "cwest-ascension-system",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A teacher-controlled skill and badge tracker. Development prototype, not a student deployment.",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "demo": "node server/index.mjs --demo",
+    "start": "node server/index.mjs",
+    "accounts": "node scripts/accounts.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check.mjs && npm test",
+    "build": "node scripts/build.mjs"
+  }
+}
