@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 
 function run(args = []) {
   return new Promise(resolve => {
@@ -23,7 +23,7 @@ test('concurrent builds allocate unique identities and propagate one immutable m
     const manifest = JSON.parse(readFileSync(join(out, 'build-info.json'), 'utf8'));
     ids.push(manifest.id);
     assert.match(result.output, new RegExp(`BUILD SUCCESS ${manifest.id}`));
-    assert.equal(out.split('/').at(-1), manifest.id);
+    assert.equal(basename(out), manifest.id);
     assert.deepEqual(JSON.parse(readFileSync(join(out, 'public/build-info.json'), 'utf8')), manifest);
     assert.ok(readFileSync(join(out, 'BUILD_REPORT.md'), 'utf8').includes(manifest.id));
     assert.match(manifest.sourceRevision, /^[a-f0-9]{40}$/);
