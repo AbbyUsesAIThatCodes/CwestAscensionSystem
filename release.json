@@ -1,0 +1,7 @@
+{
+  "version": "0.1.0",
+  "status": "development",
+  "codename": null,
+  "codenameSlug": "Unassigned",
+  "compatibility": "Initial development prototype. No production data migration or stable API contract is promised. Back up SQLite before updating."
+}
