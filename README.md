@@ -85,7 +85,7 @@ A build creates `dist/<complete-build-id>/` with a fixed manifest and build repo
 ## Important Prototype Limits
 
 - No hosting or actual school sign-in has been configured, and no real class records are included.
-- SQLite currently stores the versioned application model as a transactional JSON snapshot, alongside SQL account/session tables. This is persistent SQL-backed storage, not a normalized analytics warehouse.
+- SQLite currently stores the application model as a transactional JSON snapshot, alongside SQL account/session tables. This is persistent SQL-backed storage, not a normalized analytics warehouse.
 - Badge rank labels with existing award history cannot be silently changed. A deliberate rank-migration editor is not implemented.
 - The graphical catalog is capped at 100 nodes per tree in this prototype. It is not validated for district-scale concurrent use.
 - Undo protects award versions. Configuration forms do not yet provide multi-editor conflict resolution; use one teacher editing session at a time.

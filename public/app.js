@@ -1,3 +1,5 @@
+import { rankTone, rankNumeral } from "./rank-display.js";
+
 const $ = (s) => document.querySelector(s),
   esc = (v) =>
     String(v ?? "").replace(
@@ -59,44 +61,6 @@ function resetSessionView() {
   zoom = 1;
   pan = { x: 0, y: 0 };
 }
-function rankTone(b, r) {
-  if (!r) return "#655c6e";
-  const label = b?.ranks?.[r - 1]?.toLowerCase() || "";
-  if (
-    label.includes("obsidian") ||
-    label.includes("mastery") ||
-    r === b?.ranks?.length
-  )
-    return "#bc8bff";
-  if (label.includes("introduced")) return "#e4dfeb";
-  if (label.includes("advanced")) return "#ee657b";
-  if (label.includes("beginner") || label.includes("intermediate"))
-    return "#dfbf70";
-  return r / Math.max(1, b?.ranks?.length) <= 0.4 ? "#dfbf70" : "#ee657b";
-}
-function rankNumeral(r) {
-  if (r < 1) return "";
-  return (
-    [
-      "",
-      "I",
-      "II",
-      "III",
-      "IV",
-      "V",
-      "VI",
-      "VII",
-      "VIII",
-      "IX",
-      "X",
-      "XI",
-      "XII",
-      "XIII",
-      "XIV",
-      "XV",
-    ][r] || String(r)
-  );
-}
 const brand = () =>
   `<div class="brand"><div class="brand-symbol" aria-hidden="true">///</div><div><div class="brand-title">CWEST <span style="font-weight:400">ASCENSION</span></div><div class="brand-sub">NCH DIGITAL ARTS & DESIGN</div></div></div>`;
 async function api(path, body, method = "POST") {
@@ -116,7 +80,15 @@ async function api(path, body, method = "POST") {
       "The studio could not read the server response. Please try again.",
     );
   }
-  if (!r.ok) throw Error(j.error || "The request could not be completed.");
+  if (!r.ok) {
+    if (r.status === 401 && session.user) {
+      session = { user: null, demo: session.demo };
+      resetSessionView();
+      if ($("#dialog").open) closeDialog();
+      render();
+    }
+    throw Error(j.error || "The request could not be completed.");
+  }
   return j;
 }
 function toast(s) {
@@ -229,7 +201,7 @@ function treeView() {
           studentId,
         )}</select></label><button class="small quiet" data-action="preview">Preview Student View</button>`
       : `<span class="pill">${esc(s?.name || "Your Studio")}</span>`
-  }<label>Tree <select id="tree-select">${opts(m.trees || [], t?.id)}</select></label></div><div class="stat-strip"><div class="stat"><strong>${earned}<span style="font-size:13px"> / ${badges.length}</span></strong><span>${teacher() && !preview ? "Badges Earned by This Student" : "Visible Badges Earned"}</span></div><div class="stat"><strong>${badges.filter((b) => b.ranks.length > 0 && rank(b.id) === b.ranks.length).length}</strong><span>Top Ranks Recognized</span></div><div class="stat"><strong>${new Set(badges.filter((b) => rank(b.id) > 0).map((b) => b.category)).size}</strong><span>Creative Disciplines Explored</span></div></div><div class="workspace"><section class="panel map-panel"><div class="panel-top"><div><h3>${esc(t?.name || "No Visible Trees")}</h3><span class="subtle">${teacher() && !preview ? "Teacher view includes all placed badges" : "Only the paths visible to you appear here"}</span></div><div class="toolbar"><input id="badge-search" aria-label="Find a badge" placeholder="Find a badge…" value="${esc(search)}" style="width:135px"><button class="small" data-action="toggle-list">${listMode ? "Map View" : "List View"}</button></div></div>${listMode ? `<div>${badges.map((b) => `<div class="list-row">${emblem(b.icon, rank(b.id) > 0, rankTone(b, rank(b.id)), rankNumeral(rank(b.id)))}<div class="grow"><h3>${esc(b.name)}</h3><p>${esc(rank(b.id) ? b.ranks[rank(b.id) - 1] : "Unexplored Potential")}</p></div><button data-select-badge="${esc(b.id)}">Details</button></div>`).join("") || '<div class="empty">No badges match this view.</div>'}</div>` : `<div class="map-viewport" aria-label="Skill Tree. Drag to pan; use buttons to zoom.">${mapSvg(t, badges)}<div class="map-caption">DRAG TO EXPLORE · SELECT A BADGE</div><div class="map-controls"><button data-action="zoom-out" aria-label="Zoom out">−</button><button data-action="zoom-reset" aria-label="Reset map">⌖</button><button data-action="zoom-in" aria-label="Zoom in">＋</button></div></div>`}<div class="legend"><span><i class="dot"></i>Earned</span><span><i class="dot dormant"></i>Unexplored</span><span>Ranks are manually awarded</span></div></section><aside class="panel">${b ? detail(b, t) : '<div class="empty">Choose a badge to explore.</div>'}</aside></div>`;
+  }<label>Tree <select id="tree-select">${opts(m.trees || [], t?.id)}</select></label></div><div class="stat-strip"><div class="stat"><strong>${earned}<span style="font-size:13px"> / ${badges.length}</span></strong><span>${teacher() && !preview ? "Badges Earned by This Student" : "Visible Badges Earned"}</span></div><div class="stat"><strong>${badges.filter((b) => b.ranks.length > 0 && rank(b.id) === b.ranks.length).length}</strong><span>Top Ranks Recognized</span></div><div class="stat"><strong>${new Set(badges.filter((b) => rank(b.id) > 0).map((b) => b.category)).size}</strong><span>Creative Disciplines Explored</span></div></div><div class="workspace"><section class="panel map-panel"><div class="panel-top"><div><h3>${esc(t?.name || "No Visible Trees")}</h3><span class="subtle">${teacher() && !preview ? "Teacher view includes all placed badges" : "Only the paths visible to you appear here"}</span></div><div class="toolbar"><input id="badge-search" aria-label="Find a badge" placeholder="Find a badge…" value="${esc(search)}" style="width:135px"><button class="small" data-action="toggle-list">${listMode ? "Map View" : "List View"}</button></div></div>${listMode ? `<div>${badges.map((b) => `<div class="list-row">${emblem(b.icon, rank(b.id) > 0, rankTone(b, rank(b.id)), rankNumeral(rank(b.id), b))}<div class="grow"><h3>${esc(b.name)}</h3><p>${esc(rank(b.id) ? b.ranks[rank(b.id) - 1] : "Unexplored Potential")}</p></div><button data-select-badge="${esc(b.id)}">Details</button></div>`).join("") || '<div class="empty">No badges match this view.</div>'}</div>` : `<div class="map-viewport" aria-label="Skill Tree. Drag to pan; use buttons to zoom.">${mapSvg(t, badges)}<div class="map-caption">DRAG TO EXPLORE · SELECT A BADGE</div><div class="map-controls"><button data-action="zoom-out" aria-label="Zoom out">−</button><button data-action="zoom-reset" aria-label="Reset map">⌖</button><button data-action="zoom-in" aria-label="Zoom in">＋</button></div></div>`}<div class="legend"><span><i class="dot"></i>Earned</span><span><i class="dot dormant"></i>Unexplored</span><span>Ranks are manually awarded</span></div></section><aside class="panel">${b ? detail(b, t) : '<div class="empty">Choose a badge to explore.</div>'}</aside></div>`;
 }
 function mapSvg(t, badges) {
   const nodes = (t?.nodes || []).filter((n) =>
@@ -239,14 +211,14 @@ function mapSvg(t, badges) {
     .map((n) => {
       const b = badges.find((b) => b.id === n.badgeId),
         r = rank(b.id);
-      return `<g class="node ${r ? "earned" : ""} ${badgeId === b.id ? "selected" : ""}" transform="translate(${Number(n.x)} ${Number(n.y)}) scale(3)" data-select-badge="${esc(b.id)}" role="button" tabindex="0" aria-label="${esc(b.name)}, ${esc(r ? b.ranks[r - 1] : "unearned")}"><polygon class="outer" points="0,-12 10.4,-6 10.4,6 0,12 -10.4,6 -10.4,-6" fill="#1b1522" stroke="${r ? rankTone(b, r) : "#5b5267"}"/><polygon points="0,-9.6 8.3,-4.8 8.3,4.8 0,9.6 -8.3,4.8 -8.3,-4.8" fill="#1c1624" stroke="${r ? rankTone(b, r) : "#302a38"}" stroke-width=".4"/><path transform="scale(.5)" d="${r ? icons[b.icon] || icons.spark : icons.spark}" fill="none" stroke="${r ? rankTone(b, r) : "#4d4259"}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${r ? `<text y="9" style="font-size:2.5px;fill:${rankTone(b, r)}">${rankNumeral(r)}</text>` : ""}${n.showName !== false || r ? `<text y="17">${esc(b.name)}</text>` : ""}<text class="rank-label" y="21.7">${esc(r ? b.ranks[r - 1] : "UNEXPLORED")}</text></g>`;
+      return `<g class="node ${r ? "earned" : ""} ${badgeId === b.id ? "selected" : ""}" transform="translate(${Number(n.x)} ${Number(n.y)}) scale(3)" data-select-badge="${esc(b.id)}" role="button" tabindex="0" aria-label="${esc(b.name)}, ${esc(r ? b.ranks[r - 1] : "unearned")}"><polygon class="outer" points="0,-12 10.4,-6 10.4,6 0,12 -10.4,6 -10.4,-6" fill="#1b1522" stroke="${r ? rankTone(b, r) : "#5b5267"}"/><polygon points="0,-9.6 8.3,-4.8 8.3,4.8 0,9.6 -8.3,4.8 -8.3,-4.8" fill="#1c1624" stroke="${r ? rankTone(b, r) : "#302a38"}" stroke-width=".4"/><path transform="scale(.5)" d="${r ? icons[b.icon] || icons.spark : icons.spark}" fill="none" stroke="${r ? rankTone(b, r) : "#4d4259"}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>${r ? `<text y="9" style="font-size:2.5px;fill:${rankTone(b, r)}">${rankNumeral(r, b)}</text>` : ""}${n.showName !== false || r ? `<text y="17">${esc(b.name)}</text>` : ""}<text class="rank-label" y="21.7">${esc(r ? b.ranks[r - 1] : "UNEXPLORED")}</text></g>`;
     })
     .join("")}</g></svg>`;
 }
 function detail(b, t) {
   let r = rank(b.id),
     a = award(b.id);
-  return `<div class="detail"><div class="eyebrow">${r ? "Recognized Growth" : "Unexplored Potential"}</div>${emblem(b.icon, !!r, rankTone(b, r), rankNumeral(r))}<h2>${esc(b.name)}</h2><div class="category">${esc(b.category)}</div><p>${esc(b.description)}</p><div class="rank-track">${b.ranks.map((_, i) => `<span class="${i < r ? "filled" : ""}"></span>`).join("")}</div><div class="subtle">${b.concealed ? "A Future Discovery" : `${r ? esc(b.ranks[r - 1]) : "Not Yet Awarded"} · ${r} / ${b.ranks.length}`}</div><p class="help" style="margin-top:12px">${b.ranks.map((n, i) => `${i + 1}. ${esc(n)}`).join(" · ")}</p>${a?.publicNote ? `<div class="detail-note"><b>Teacher’s Note</b><br>${esc(a.publicNote)}</div>` : ""}${teacher() && !preview ? `<div style="margin-top:23px"><button class="primary" data-action="award" data-badge="${esc(b.id)}">${r ? "Update Rank" : "Award a Rank"}</button><button class="quiet small" data-action="visibility" style="margin-top:10px">Student Visibility Settings</button></div>${a?.privateNote ? `<div class="detail-note"><b>Private Teacher Note</b><br>${esc(a.privateNote)}</div>` : ""}` : '<p class="subtle" style="margin-top:20px">Your teacher recognizes growth and updates your ranks.</p>'}</div>`;
+  return `<div class="detail"><div class="eyebrow">${r ? "Recognized Growth" : "Unexplored Potential"}</div>${emblem(b.icon, !!r, rankTone(b, r), rankNumeral(r, b))}<h2>${esc(b.name)}</h2><div class="category">${esc(b.category)}</div><p>${esc(b.description)}</p><div class="rank-track">${b.ranks.map((_, i) => `<span class="${i < r ? "filled" : ""}"></span>`).join("")}</div><div class="subtle">${b.concealed ? "A Future Discovery" : `${r ? esc(b.ranks[r - 1]) : "Not Yet Awarded"} · ${r} / ${b.ranks.length}`}</div><p class="help" style="margin-top:12px">${b.ranks.map((n, i) => `${i + 1}. ${esc(n)}`).join(" · ")}</p>${a?.publicNote ? `<div class="detail-note"><b>Teacher’s Note</b><br>${esc(a.publicNote)}</div>` : ""}${teacher() && !preview ? `<div style="margin-top:23px"><button class="primary" data-action="award" data-badge="${esc(b.id)}">${r ? "Update Rank" : "Award a Rank"}</button><button class="quiet small" data-action="visibility" style="margin-top:10px">Student Visibility Settings</button></div>${a?.privateNote ? `<div class="detail-note"><b>Private Teacher Note</b><br>${esc(a.privateNote)}</div>` : ""}` : '<p class="subtle" style="margin-top:20px">Your teacher recognizes growth and updates your ranks.</p>'}</div>`;
 }
 function badgesView() {
   return `${heading("Badge Library", "Define skills and the ranks that matter to your teaching.", '<button class="primary" data-action="edit-badge">＋ Create Badge</button>')}<div class="cards">${data.badges.map((b) => `<article class="panel badge-card">${emblem(b.icon, !b.archived)}<span class="eyebrow gold">${esc(b.category)}</span><h3>${esc(b.name)} ${b.archived ? '<span class="pill">Archived</span>' : ""}</h3><p>${esc(b.description)}</p><span class="subtle">${b.ranks.length} configurable ranks</span><button data-action="edit-badge" data-id="${esc(b.id)}">Edit Badge</button></article>`).join("")}</div>`;
@@ -276,7 +248,7 @@ function historyView() {
       .map((h) => {
         let b = model().badges.find((b) => b.id === h.badgeId);
         let r = h.next?.rank ?? h.rank ?? 0;
-        return `<div class="list-row">${emblem(b?.icon, !!r, rankTone(b, r), rankNumeral(r))}<div class="grow"><h3>${esc(b?.name || "Badge")} · ${esc(r ? b?.ranks[r - 1] || "Rank " + r : "Rank Removed")}</h3><p>${teacher() ? esc(data.students.find((s) => s.id === h.studentId)?.name || "Student") + " · " : ""}${esc(new Date(h.time).toLocaleString())}${h.undoneBy ? " · Undone" : ""}${h.undoOf ? " · Undo Record" : ""}</p>${h.publicNote ? `<p>${esc(h.publicNote)}</p>` : ""}</div>${teacher() && !h.undoneBy && !h.undoOf ? `<button class="small" data-undo="${esc(h.batchId)}">Undo Batch</button>` : ""}</div>`;
+        return `<div class="list-row">${emblem(b?.icon, !!r, rankTone(b, r), rankNumeral(r, b))}<div class="grow"><h3>${esc(b?.name || "Badge")} · ${esc(r ? b?.ranks[r - 1] || "Rank " + r : "Rank Removed")}</h3><p>${teacher() ? esc(data.students.find((s) => s.id === h.studentId)?.name || "Student") + " · " : ""}${esc(new Date(h.time).toLocaleString())}${h.undoneBy ? " · Undone" : ""}${h.undoOf ? " · Undo Record" : ""}</p>${h.publicNote ? `<p>${esc(h.publicNote)}</p>` : ""}</div>${teacher() && !h.undoneBy && !h.undoOf ? `<button class="small" data-undo="${esc(h.batchId)}">Undo Batch</button>` : ""}</div>`;
       })
       .join("") ||
     '<div class="empty">Your journey starts with the first recognized skill.</div>'
@@ -590,7 +562,7 @@ document.addEventListener("click", (e) => {
   if (el.dataset.rankPreset) {
     $('#dialog [name="ranks"]').value =
       el.dataset.rankPreset === "yet"
-        ? "Introduced\nGrowing\nMastery"
+        ? "Beginning\nDeveloping\nConsistent"
         : [
             "Introduced",
             ...["Beginner", "Intermediate", "Advanced", "Obsidian"].flatMap(
